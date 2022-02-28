@@ -49,20 +49,4 @@ class MLP(object):
         for layer in reversed(self.layers):
             dout = layer.backward(dout)
         return dout
-
-if __name__ == "__main__":
-    mlp = MLP(2, [2, 2], 2)
-    mlp.forward(np.array([[1, 2], [1, 2], [1, 2]]))
-    
-    y_pred=np.array([[0.8, 0.2], [0.3, 0.7], [0.3, 0.7]])
-    y_true=np.array([[1, 0], [0, 1], [0, 1]])
-    
-    ce=CrossEntropy()
-    loss_grad=ce.backward(y_pred, y_true)
-    mlp.backward(loss_grad)
-    
-    print("---")
-    print(mlp.layers[0].grads["weight"])
-    print(mlp.layers[2].grads["weight"])
-    print(mlp.layers[4].grads["weight"])
     
