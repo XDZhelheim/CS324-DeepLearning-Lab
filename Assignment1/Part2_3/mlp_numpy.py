@@ -19,10 +19,12 @@ class MLP(object):
         self.n_classes = n_classes
 
         self.layers = []
+        prev_dim = n_inputs
         for num_units in n_hidden:
-            self.layers.append(Linear(n_inputs, num_units))
+            self.layers.append(Linear(prev_dim, num_units))
             self.layers.append(ReLU())
-        self.layers.append(Linear(n_hidden[-1], n_classes))
+            prev_dim = num_units
+        self.layers.append(Linear(prev_dim, n_classes))
         self.layers.append(SoftMax())
 
     def forward(self, x):
@@ -49,7 +51,18 @@ class MLP(object):
         return dout
 
 if __name__ == "__main__":
-    mlp = MLP(2, [5], 2)
-    print(mlp.forward(np.array([[1, 2], [1, 2]])))
-    print(mlp.backward(np.array([[1.2, 0], [1.2, 0]])))
+    mlp = MLP(2, [2, 2], 2)
+    mlp.forward(np.array([[1, 2], [1, 2], [1, 2]]))
+    
+    y_pred=np.array([[0.8, 0.2], [0.3, 0.7], [0.3, 0.7]])
+    y_true=np.array([[1, 0], [0, 1], [0, 1]])
+    
+    ce=CrossEntropy()
+    loss_grad=ce.backward(y_pred, y_true)
+    mlp.backward(loss_grad)
+    
+    print("---")
+    print(mlp.layers[0].grads["weight"])
+    print(mlp.layers[2].grads["weight"])
+    print(mlp.layers[4].grads["weight"])
     

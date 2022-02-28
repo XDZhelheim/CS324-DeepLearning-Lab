@@ -48,8 +48,8 @@ class Perceptron():
             loss = 0
             np.random.shuffle(data)
             for x, y in data:
-                if y * (self.w @ x.T + self.b) <= 0:
-                    loss += -y * (self.w @ x.T + self.b)
+                if y * (self.w @ x + self.b) <= 0:
+                    loss += -y * (self.w @ x + self.b)
                     self.w = self.w + self.lr * x * y
                     self.b = self.b + self.lr * y
                     flag = True

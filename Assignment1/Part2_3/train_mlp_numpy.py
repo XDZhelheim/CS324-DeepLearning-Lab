@@ -7,6 +7,7 @@ import numpy as np
 import os
 from mlp_numpy import MLP
 from modules import CrossEntropy
+from sklearn.datasets import make_moons
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '20'
@@ -28,12 +29,12 @@ def accuracy(predictions, targets):
     """
     return accuracy
 
-def train():
+def train(max_epochs=MAX_EPOCHS_DEFAULT, verbose=100, save_best=True):
     """
     Performs training and evaluation of MLP model.
     NOTE: You should the model on the whole test set each eval_freq iterations.
     """
-    # YOUR TRAINING CODE GOES HERE
+    pass
 
 
 def main():
