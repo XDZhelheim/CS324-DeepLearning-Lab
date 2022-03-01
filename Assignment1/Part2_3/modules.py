@@ -21,7 +21,7 @@ class Linear(object):
         """
         self.params = {}
         self.params["weight"] = np.random.normal(loc=1, # !!!! dont set loc=0 层数多的时候 w太接近0导致严重的梯度消失问题 !!!!
-                                                 scale=1,
+                                                 scale=1, # dont be too small
                                                  size=(in_features,
                                                        out_features))
         self.params["bias"] = np.zeros(out_features)

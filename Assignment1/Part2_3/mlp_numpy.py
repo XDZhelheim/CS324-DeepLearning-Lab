@@ -49,4 +49,19 @@ class MLP(object):
         for layer in reversed(self.layers):
             dout = layer.backward(dout)
         return dout
-    
+
+
+class Optimizer(object):
+    def __init__(self, model, lr):
+        self.model = model
+        self.lr = lr
+
+        self.trainable_layers = []
+        for layer in model.layers:
+            if isinstance(layer, Linear):
+                self.trainable_layers.append(layer)
+
+    def step(self):
+        for layer in self.trainable_layers:
+            layer.params["weight"] -= self.lr * layer.grads["weight"]
+            layer.params["bias"] -= self.lr * layer.grads["bias"]
