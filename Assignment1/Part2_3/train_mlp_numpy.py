@@ -132,15 +132,16 @@ def train(model,
         if (epoch + 1) % verbose == 0:
             if not quiet or visual_model:
                 train_loss, train_acc = eval_model(model, criterion, x_train,
-                                                y_train)
-                eval_loss, eval_acc = eval_model(model, criterion, x_eval, y_eval)
+                                                   y_train)
+                eval_loss, eval_acc = eval_model(model, criterion, x_eval,
+                                                 y_eval)
 
             if not quiet:
                 print(datetime.datetime.now(), "Epoch", epoch + 1,
-                    "\tTrain Loss = %.5f" % train_loss,
-                    "Train acc = %.3f " % train_acc,
-                    "Eval Loss = %.5f" % eval_loss,
-                    "Eval acc = %.3f " % eval_acc)
+                      "\tTrain Loss = %.5f" % train_loss,
+                      "Train acc = %.3f " % train_acc,
+                      "Eval Loss = %.5f" % eval_loss,
+                      "Eval acc = %.3f " % eval_acc)
 
             if visual_model:
                 train_loss_list.append(train_loss)
@@ -156,17 +157,29 @@ def train(model,
     if visual_model:
         draw()
         plt.show()
-        
-        plt.plot(np.arange(verbose, epoch+2, step=verbose), train_loss_list, "-", label="train_loss")
-        plt.plot(np.arange(verbose, epoch+2, step=verbose), eval_loss_list, "-", label="eval_loss")
+
+        plt.plot(np.arange(verbose, epoch + 2, step=verbose),
+                 train_loss_list,
+                 "-",
+                 label="train_loss")
+        plt.plot(np.arange(verbose, epoch + 2, step=verbose),
+                 eval_loss_list,
+                 "-",
+                 label="eval_loss")
         plt.title("Epoch-Loss")
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.legend()
         plt.show()
-        
-        plt.plot(np.arange(verbose, epoch+2, step=verbose), train_acc_list, "-", label="train_acc")
-        plt.plot(np.arange(verbose, epoch+2, step=verbose), eval_acc_list, "-", label="eval_acc")
+
+        plt.plot(np.arange(verbose, epoch + 2, step=verbose),
+                 train_acc_list,
+                 "-",
+                 label="train_acc")
+        plt.plot(np.arange(verbose, epoch + 2, step=verbose),
+                 eval_acc_list,
+                 "-",
+                 label="eval_acc")
         plt.title("Epoch-Accuracy")
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy")
