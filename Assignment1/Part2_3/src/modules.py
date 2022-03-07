@@ -1,5 +1,7 @@
 import numpy as np
 
+SEED = 220307
+
 
 class Linear(object):
     def __init__(self, in_features, out_features):
@@ -19,11 +21,12 @@ class Linear(object):
         2) Initialize biases self.params['bias'] with 0. 
         3) Initialize gradients with zeros.
         """
+        np.random.seed(SEED)
         self.params = {}
-        self.params["weight"] = np.random.normal(loc=1, # !!!! dont set loc=0 层数多的时候 w太接近0导致严重的梯度消失问题 !!!!
-                                                 scale=1, # dont be too small
-                                                 size=(in_features,
-                                                       out_features))
+        self.params["weight"] = np.random.normal(
+            loc=1,  # !!!! dont set loc=0 层数多的时候 w太接近0导致严重的梯度消失问题 !!!!
+            scale=1,  # dont be too small
+            size=(in_features, out_features))
         self.params["bias"] = np.zeros(out_features)
 
         self.grads = {}
@@ -50,7 +53,8 @@ class Linear(object):
         and use them in the backward pass computation. This is true for *all* forward methods of *all* modules in this class
         """
         self.x = x
-        self.out = x @ self.params["weight"] + self.params["bias"]  # (m * n) @ (n * units) + (units * 1) = (m * units)
+        self.out = x @ self.params["weight"] + self.params[
+            "bias"]  # (m * n) @ (n * units) + (units * 1) = (m * units)
 
         # print("linear out shape", self.out.shape, sep="\t")
 
@@ -86,7 +90,7 @@ class ReLU(object):
             out: output of the module
         """
         self.out = np.maximum(0, x)
-        self.x=x
+        self.x = x
 
         # print("relu out shape  ", self.out.shape, sep="\t")
 
@@ -103,7 +107,7 @@ class ReLU(object):
         dx = np.where(self.x > 0, dout, 0)
 
         # print("relu dx shape    ", dx.shape, sep="\t")
-        
+
         return dx
 
 
@@ -162,7 +166,7 @@ class SoftMax(object):
         # dx = (dout - np.reshape(np.sum(dout * self.out, 1), [-1, 1])) * self.out
 
         # print("softmax dx shape", dx.shape, sep="\t")
-        
+
         return dx
 
 
@@ -220,4 +224,3 @@ class CrossEntropy(object):
         # print("CE dx shape     ", dx.shape, sep="\t")
 
         return dx
-    

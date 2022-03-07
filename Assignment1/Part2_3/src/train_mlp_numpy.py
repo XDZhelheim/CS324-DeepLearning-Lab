@@ -20,7 +20,7 @@ MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
 BATCH_SIZE_DEFAULT = 8
 
-SEED = 27
+SEED = 220307
 
 
 def onehot_encode(label_vec, n_classes):

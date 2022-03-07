@@ -3,6 +3,7 @@ import datetime
 
 SEED = 24
 
+
 class Perceptron():
     def __init__(self, dim, max_epochs=1e2, learning_rate=1e-2):
         """
@@ -29,7 +30,7 @@ class Perceptron():
 
         return np.sign(self.w @ input.T + self.b)
 
-    def train(self, training_inputs, labels, verbose=10, save_best=False):
+    def train(self, training_inputs, labels, verbose=10):
         """
         Train the perceptron
         Args:
@@ -40,33 +41,26 @@ class Perceptron():
         data = list(zip(training_inputs, labels))
         np.random.seed(SEED)
 
-        min_loss, min_loss_epoch, best_arg = np.finfo(np.float32).max, -1, (self.w, self.b)
         epoch = 0
         flag = True
         while flag and epoch < self.max_epochs:
             flag = False
-            loss = 0
             np.random.shuffle(data)
             for x, y in data:
                 if y * (self.w @ x + self.b) <= 0:
-                    loss += -y * (self.w @ x + self.b)
                     self.w = self.w + self.lr * x * y
                     self.b = self.b + self.lr * y
                     flag = True
-                    
+
+            loss = 0
+            for x, y in data:
+                if y * (self.w @ x + self.b) <= 0:
+                    loss += -y * (self.w @ x + self.b)
+
             epoch += 1
             if epoch % verbose == 0:
                 print(datetime.datetime.now(), "Epoch", epoch,
                       "Train Loss = %.3f" % loss)
-                
-            if loss < min_loss:
-                min_loss=loss
-                min_loss_epoch=epoch
-                best_arg=(self.w, self.b)
-        
-        if save_best:
-            self.w, self.b = best_arg
-            print("Using model at epoch {}. Loss = {:.3f}".format(min_loss_epoch, min_loss))
 
     def gen_dataset(self, num, mu1, sigma1, mu2, sigma2):
         np.random.seed(SEED)
