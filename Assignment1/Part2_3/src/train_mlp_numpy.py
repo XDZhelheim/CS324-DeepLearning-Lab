@@ -18,7 +18,7 @@ DNN_HIDDEN_UNITS_DEFAULT = "20"
 LEARNING_RATE_DEFAULT = 1e-2
 MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
-BATCH_SIZE_DEFAULT = 8
+BATCH_SIZE_DEFAULT = 4
 
 SEED = 220307
 
@@ -198,7 +198,7 @@ def main(args):
     y = onehot_encode(y, 2)
     x_train, x_test, y_train, y_test = train_test_split(x,
                                                         y,
-                                                        test_size=0.2,
+                                                        test_size=0.3,
                                                         random_state=SEED)
 
     mlp = MLP(x.shape[1], units, 2)
