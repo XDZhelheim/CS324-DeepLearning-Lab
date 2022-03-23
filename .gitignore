@@ -130,3 +130,4 @@ dmypy.json
 
 temp*
 Assignment1/Part2_3/images/*.png
+data/

@@ -56,7 +56,7 @@ def eval_model(model, criterion, x, y):
     out = model.forward(x)
     loss = criterion.forward(out, y)
     acc = accuracy(out, y)
-    
+
     return float(loss), float(acc)
 
 
@@ -72,7 +72,8 @@ def train(model,
           verbose=10,
           save_fig=False,
           visual_model=False,
-          quiet=False):
+          quiet=False,
+          gpu=False):
     """
     Performs training and evaluation of MLP model.
     NOTE: You should evaluate the model on the whole test set each eval_freq iterations.
@@ -86,7 +87,7 @@ def train(model,
         xx, yy = np.meshgrid(xline, yline)
         xy = np.c_[xx.ravel(), yy.ravel()]
         xy = torch.FloatTensor(xy)
-        if torch.cuda.is_available():
+        if gpu and torch.cuda.is_available():
             xy = xy.cuda()
 
         def draw():
@@ -201,21 +202,25 @@ def main(args):
     x, y = make_moons(points, random_state=SEED)
     x = torch.FloatTensor(x)
     y = torch.LongTensor(y)
-    if torch.cuda.is_available():
+    if args.gpu and torch.cuda.is_available():
         print("---Using CUDA---")
         x = x.cuda()
         y = y.cuda()
+    else:
+        if args.gpu and not torch.cuda.is_available():
+            print("Warning: CUDA not available.")
+        print("---Using CPU---")
     x_train, x_test, y_train, y_test = train_test_split(x,
                                                         y,
                                                         test_size=0.3,
                                                         random_state=SEED)
 
     mlp = MLP(x.shape[1], units, 2)
-    if torch.cuda.is_available():
+    if args.gpu and torch.cuda.is_available():
         mlp.cuda()
     print(mlp)
 
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss() # !!! torch does not accept one-hot labels !!!
 
     if args.batch_size == -1:
         batch_size = len(x_train)  # BGD
@@ -236,7 +241,8 @@ def main(args):
           verbose=args.eval_freq,
           save_fig=args.save_fig,
           visual_model=args.visual_model,
-          quiet=args.quiet)
+          quiet=args.quiet,
+          gpu=args.gpu)
 
 
 if __name__ == '__main__':
@@ -281,6 +287,7 @@ if __name__ == '__main__':
                         "-q",
                         action="store_true",
                         help="No stdout when training.")
+    parser.add_argument("--gpu", "-g", action="store_true", help="Use GPU.")
 
     args = parser.parse_args()
 
