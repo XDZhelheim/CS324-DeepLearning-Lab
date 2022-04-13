@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import datetime
 
 # Default constants
-LEARNING_RATE_DEFAULT = 1e-2
-BATCH_SIZE_DEFAULT = 32
+LEARNING_RATE_DEFAULT = 1e-4
+BATCH_SIZE_DEFAULT = 64
 MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
 OPTIMIZER_DEFAULT = "ADAM"
@@ -44,9 +44,9 @@ def accuracy(predictions, targets):
 
     acc = torch.mean((pred_decode == true_decode).float())
 
-    return acc
+    return float(acc)
 
-
+@torch.no_grad()
 def eval_model(model, criterion, x, y):
     out = model.forward(x)
     loss = criterion.forward(out, y)
@@ -63,6 +63,7 @@ def train(model,
           max_epochs=MAX_EPOCHS_DEFAULT,
           learning_rate=LEARNING_RATE_DEFAULT,
           verbose=EVAL_FREQ_DEFAULT,
+          num_workers=0,
           visual_model=False,
           quiet=False,
           gpu=False):
@@ -75,7 +76,7 @@ def train(model,
         train_acc_list = []
         eval_loss_list = []
         eval_acc_list = []
-        
+
     if gpu and torch.cuda.is_available():
         print("---Using CUDA---")
         model.cuda()
@@ -83,10 +84,18 @@ def train(model,
         if gpu and not torch.cuda.is_available():
             print("Warning: CUDA not available.")
         print("---Using CPU---")
-    print(model)
-        
-    trainset_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4)
-    evalset_loader = torch.utils.data.DataLoader(evalset, batch_size=batch_size, shuffle=True, num_workers=4)
+    # print(model)
+
+    trainset_loader = torch.utils.data.DataLoader(trainset,
+                                                  batch_size=batch_size,
+                                                  shuffle=True,
+                                                  num_workers=num_workers,
+                                                  pin_memory=True)
+    evalset_loader = torch.utils.data.DataLoader(evalset,
+                                                 batch_size=batch_size,
+                                                 shuffle=True,
+                                                 num_workers=num_workers,
+                                                 pin_memory=True)
 
     print("Train set shape", trainset.data.shape)
     num_batches = len(trainset) // batch_size
@@ -96,48 +105,44 @@ def train(model,
 
     np.random.seed(SEED)
     for epoch in range(max_epochs):
+        batch_loss_list = []
+        batch_acc_list = []
         for x_batch, y_batch in trainset_loader:
             if gpu and torch.cuda.is_available():
-                x_batch=x_batch.cuda()
-                y_batch=y_batch.cuda()
-            
+                x_batch = x_batch.cuda()
+                y_batch = y_batch.cuda()
+
             out_batch = model.forward(x_batch)
+            batch_acc_list.append(accuracy(out_batch, y_batch))
+
             loss = criterion.forward(out_batch, y_batch)
+            batch_loss_list.append(loss.item())
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
         if (epoch + 1) % verbose == 0:
             if not quiet or visual_model:
-                # train loss and acc
-                train_loss, train_acc=0, 0
-                count=0
-                for train_x_batch, train_y_batch in trainset_loader:
-                    if gpu and torch.cuda.is_available():
-                        train_x_batch=train_x_batch.cuda()
-                        train_y_batch=train_y_batch.cuda()
-                    train_loss_batch, train_acc_batch = eval_model(model, criterion, train_x_batch, train_y_batch)
-                    
-                    train_loss+=train_loss_batch
-                    train_acc+=train_acc_batch
-                    count+=1
-                train_loss/=count
-                train_acc/=count
-                
+                # train loss
+                train_loss = sum(batch_loss_list) / len(batch_loss_list)
+                train_acc = sum(batch_acc_list) / len(batch_acc_list)
+
                 # eval loss and acc
-                eval_loss, eval_acc=0, 0
-                count=0
+                eval_loss, eval_acc = 0, 0
+                count = 0
                 for eval_x_batch, eval_y_batch in evalset_loader:
                     if gpu and torch.cuda.is_available():
-                        eval_x_batch=eval_x_batch.cuda()
-                        eval_y_batch=eval_y_batch.cuda()
-                    eval_loss_batch, eval_acc_batch = eval_model(model, criterion, eval_x_batch, eval_y_batch)
-                    
-                    eval_loss+=eval_loss_batch
-                    eval_acc+=eval_acc_batch
-                    count+=1
-                eval_loss/=count
-                eval_acc/=count
+                        eval_x_batch = eval_x_batch.cuda()
+                        eval_y_batch = eval_y_batch.cuda()
+                    eval_loss_batch, eval_acc_batch = eval_model(
+                        model, criterion, eval_x_batch, eval_y_batch)
+
+                    eval_loss += eval_loss_batch
+                    eval_acc += eval_acc_batch
+                    count += 1
+                eval_loss /= count
+                eval_acc /= count
 
             if not quiet:
                 print(datetime.datetime.now(), "Epoch", epoch + 1,
@@ -188,15 +193,24 @@ def main(args):
     
     CIFAR10
     """
-    
-    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-        
-    cnn=CNN(3, 10)
+
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data',
+                                            train=True,
+                                            download=True,
+                                            transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./data',
+                                           train=False,
+                                           download=True,
+                                           transform=transform)
+
+    cnn = CNN(3, 10)
     criterion = torch.nn.CrossEntropyLoss()
-    
+
     train(cnn,
           trainset,
           testset,
@@ -205,9 +219,11 @@ def main(args):
           max_epochs=args.max_epochs,
           learning_rate=args.learning_rate,
           verbose=args.eval_freq,
+          num_workers=args.num_workers,
           visual_model=args.visual_model,
           quiet=args.quiet,
           gpu=args.gpu)
+
 
 if __name__ == '__main__':
     # Command line arguments
@@ -237,6 +253,11 @@ if __name__ == '__main__':
                         type=int,
                         default=EVAL_FREQ_DEFAULT,
                         help="Frequency of evaluation on the test set.")
+    parser.add_argument("--num_workers",
+                        "-w",
+                        type=int,
+                        default=0,
+                        help="Param num_workers of pytorch. Set to 0 when using Jupyter!!!")
     parser.add_argument("--visual_model",
                         "-v",
                         action="store_true",

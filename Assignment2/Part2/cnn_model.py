@@ -12,7 +12,7 @@ class ConvBNReLU(nn.Module):
     
     which combines convolution, batch normalization and ReLU layers.
     
-    author: Prof. Shiqi Yu & "fengyuentau"
+    Author: Prof. Shiqi Yu & "fengyuentau"
     """
     def __init__(self,
                  in_channels,
@@ -50,7 +50,7 @@ class Reshape(nn.Module):
         self.shape = args
 
     def forward(self, x):
-        return x.reshape(self.shape)
+        return x.view(self.shape)
 
 
 class CNN(nn.Module):
@@ -67,41 +67,41 @@ class CNN(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # self.layers=nn.Sequential(
-        #     ConvBNReLU(self.n_channels, 64, kernel_size=3, stride=1, padding=1),
-        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        self.layers=nn.Sequential(
+            ConvBNReLU(self.n_channels, 64, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             
-        #     ConvBNReLU(64, 128, kernel_size=3, stride=1, padding=1),
-        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            ConvBNReLU(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             
-        #     ConvBNReLU(128, 256, kernel_size=3, stride=1, padding=1),
-        #     ConvBNReLU(256, 256, kernel_size=3, stride=1, padding=1),
-        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            ConvBNReLU(128, 256, kernel_size=3, stride=1, padding=1),
+            ConvBNReLU(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             
-        #     ConvBNReLU(256, 512, kernel_size=3, stride=1, padding=1),
-        #     ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
-        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            ConvBNReLU(256, 512, kernel_size=3, stride=1, padding=1),
+            ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             
-        #     ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
-        #     ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
-        #     nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
+            ConvBNReLU(512, 512, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             
-        #     Reshape(-1, 512),
+            Reshape(-1, 512),
             
-        #     nn.Linear(512, self.n_classes),
-        #     nn.Softmax(dim=1)
-        # )
-        
-        self.layers = nn.Sequential(
-            ConvBNReLU(3, 32, 3, 1),      # 32 -> 30
-            nn.MaxPool2d(2, 2),            # 30 -> 15
-            ConvBNReLU(32, 32, 3, 2, 1),    # 15 -> 8
-            
-            Reshape(-1, 32*8*8),
-            
-            nn.Linear(32*8*8, self.n_classes),
+            nn.Linear(512, self.n_classes),
             nn.Softmax(dim=1)
         )
+        
+        # self.layers = nn.Sequential(
+        #     ConvBNReLU(3, 32, 3, 1),      # 32 -> 30
+        #     nn.MaxPool2d(2, 2),            # 30 -> 15
+        #     ConvBNReLU(32, 32, 3, 2, 1),    # 15 -> 8
+            
+        #     Reshape(-1, 32*8*8),
+            
+        #     nn.Linear(32*8*8, self.n_classes),
+        #     nn.Softmax(dim=1)
+        # )
 
     def forward(self, x):
         """
