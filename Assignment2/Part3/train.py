@@ -57,6 +57,7 @@ def train(model,
           optimizer,
           batch_size,
           train_steps,
+          eval_steps,
           max_norm,
           verbose,
           num_workers=0,
@@ -91,25 +92,29 @@ def train(model,
     # print("Num of batches =", num_batches)
 
     np.random.seed(SEED)
+    loss_sum = 0
+    acc_sum = 0
     for step, (x_batch, y_batch) in enumerate(trainset_loader):
         if gpu and torch.cuda.is_available():
             x_batch = x_batch.cuda()
             y_batch = y_batch.cuda()
             
         out_batch = model.forward(x_batch)
+        acc_sum += accuracy(out_batch, y_batch)
 
         loss = criterion.forward(out_batch, y_batch)
+        loss_sum += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=max_norm)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
 
         if (step + 1) % verbose == 0:
             if not quiet or visual_model:
                 # train loss and acc
-                train_loss = loss.item()
-                train_acc = accuracy(out_batch, y_batch)
+                train_loss = loss_sum / verbose
+                train_acc = acc_sum / verbose
 
                 # eval loss and acc
                 eval_loss, eval_acc = 0, 0
@@ -124,10 +129,10 @@ def train(model,
                     eval_loss += eval_loss_batch
                     eval_acc += eval_acc_batch
 
-                    if eval_step >= 4:
+                    if eval_step >= eval_steps - 1:
                         break
-                eval_loss /= (eval_step+1)
-                eval_acc /= (eval_step+1)
+                eval_loss /= eval_steps
+                eval_acc /= eval_steps
 
             if not quiet:
                 print(datetime.datetime.now(), "Step", step + 1,
@@ -141,6 +146,9 @@ def train(model,
                 train_acc_list.append(train_acc)
                 eval_loss_list.append(eval_loss)
                 eval_acc_list.append(eval_acc)
+                
+            loss_sum = 0
+            acc_sum = 0
 
         if step >= train_steps - 1:
             break
@@ -191,6 +199,7 @@ def main(args):
           optimizer=optimizer,
           batch_size=args.batch_size,
           train_steps=args.train_steps,
+          eval_steps=5,
           max_norm=args.max_norm,
           verbose=args.eval_freq,
           num_workers=args.num_workers,

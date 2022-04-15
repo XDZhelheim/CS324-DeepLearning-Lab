@@ -38,11 +38,13 @@ class VanillaRNN(nn.Module):
         batch_size = x.shape[0]
         seq_len = x.shape[1]
         x = x.view(batch_size, seq_len, self.input_dim)
-        h = torch.zeros(batch_size, self.hidden_dim)
 
         for timestep in range(seq_len):
             xt = x[:, timestep, :]
-            h = torch.tanh(xt @ self.Whx + h @ self.Whh + self.bh)
+            if timestep == 0:
+                h = torch.tanh(xt @ self.Whx + self.bh)
+            else:
+                h = torch.tanh(xt @ self.Whx + h @ self.Whh + self.bh)
 
         out = h @ self.Wph + self.bo
         out = nn.functional.softmax(out, dim=1)
