@@ -6,7 +6,6 @@ import argparse
 import numpy as np
 
 import torch
-from torch.utils.data import DataLoader
 import datetime
 import matplotlib.pyplot as plt
 
@@ -111,11 +110,11 @@ def train(model,
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_norm)
 
         if (step + 1) % verbose == 0:
+            # train loss and acc
+            train_loss = loss_sum / verbose
+            train_acc = acc_sum / verbose
+            
             if not quiet or visual_model:
-                # train loss and acc
-                train_loss = loss_sum / verbose
-                train_acc = acc_sum / verbose
-
                 # eval loss and acc
                 eval_loss, eval_acc = 0, 0
                 for eval_step, (eval_x_batch,
@@ -199,7 +198,7 @@ def main(args):
           optimizer=optimizer,
           batch_size=args.batch_size,
           train_steps=args.train_steps,
-          eval_steps=5,
+          eval_steps=args.eval_steps,
           max_norm=args.max_norm,
           verbose=args.eval_freq,
           num_workers=args.num_workers,
@@ -239,6 +238,11 @@ if __name__ == "__main__":
                         help="Batch size")
     parser.add_argument("--train_steps",
                         "-s",
+                        type=int,
+                        default=10,
+                        help="Number of evaluation steps(use how many batches to evaluate).")
+    parser.add_argument("--eval_steps",
+                        "-e",
                         type=int,
                         default=1000,
                         help="Number of training steps(not epoch).")
