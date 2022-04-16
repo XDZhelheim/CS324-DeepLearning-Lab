@@ -5,30 +5,30 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
-from pytorch_mlp import MLP
-import torch
-from sklearn.datasets import make_circles, make_moons
+from mlp_numpy import MLP
+from mlp_numpy import Optimizer
+from modules import CrossEntropy
+from sklearn.datasets import make_moons, make_circles
 from sklearn.model_selection import train_test_split
 import datetime
 import matplotlib.pyplot as plt
 
 # Default constants
-DNN_HIDDEN_UNITS_DEFAULT = '20'
+DNN_HIDDEN_UNITS_DEFAULT = "20"
 LEARNING_RATE_DEFAULT = 1e-2
-MAX_EPOCHS_DEFAULT = 1500
-EVAL_FREQ_DEFAULT = 10
 MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
 BATCH_SIZE_DEFAULT = 4
 
-SEED = 220321
+SEED = 220307
 
-# def onehot_encode(label_vec, n_classes):
-#     return np.eye(n_classes)[label_vec]
+
+def onehot_encode(label_vec, n_classes):
+    return np.eye(n_classes)[label_vec]
 
 
 def onehot_decode(label):
-    return torch.argmax(label, dim=1)
+    return np.argmax(label, axis=1)
 
 
 def accuracy(predictions, targets):
@@ -43,11 +43,11 @@ def accuracy(predictions, targets):
     """
 
     pred_decode = onehot_decode(predictions)
-    true_decode = targets
+    true_decode = onehot_decode(targets)
 
     assert (len(pred_decode) == len(true_decode))
 
-    acc = torch.mean((pred_decode == true_decode).float())
+    acc = np.mean(pred_decode == true_decode)
 
     return acc
 
@@ -57,7 +57,7 @@ def eval_model(model, criterion, x, y):
     loss = criterion.forward(out, y)
     acc = accuracy(out, y)
 
-    return float(loss), float(acc)
+    return loss, acc
 
 
 def train(model,
@@ -72,8 +72,7 @@ def train(model,
           verbose=10,
           save_fig=False,
           visual_model=False,
-          quiet=False,
-          gpu=False):
+          quiet=False):
     """
     Performs training and evaluation of MLP model.
     NOTE: You should evaluate the model on the whole test set each eval_freq iterations.
@@ -86,9 +85,6 @@ def train(model,
         yline = np.linspace(-1.25, 1.25, 300)
         xx, yy = np.meshgrid(xline, yline)
         xy = np.c_[xx.ravel(), yy.ravel()]
-        xy = torch.FloatTensor(xy)
-        if gpu and torch.cuda.is_available():
-            xy = xy.cuda()
 
         def draw():
             plt.figure(figsize=(5, 5))
@@ -97,12 +93,12 @@ def train(model,
             plt.xlabel("X", fontsize=15)
             plt.ylabel("Y", fontsize=15)
 
-            pred = onehot_decode(model.forward(xy).cpu())
+            pred = onehot_decode(model.forward(xy))
             zz = pred.reshape(xx.shape)
             plt.contourf(xx, yy, zz, alpha=0.7, cmap=plt.cm.Spectral)
-            plt.scatter(x_train[:, 0].cpu(),
-                        x_train[:, 1].cpu(),
-                        c=y_train.cpu(),
+            plt.scatter(x_train[:, 0],
+                        x_train[:, 1],
+                        c=onehot_decode(y_train),
                         s=50,
                         cmap=plt.cm.Spectral)
 
@@ -116,7 +112,7 @@ def train(model,
     num_batches = len(x_train) // batch_size
     print("Num of batches =", num_batches)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = Optimizer(model, learning_rate)
 
     np.random.seed(SEED)
     for epoch in range(max_epochs):
@@ -129,9 +125,8 @@ def train(model,
             y_batch = y_train[batch_index]
 
             out_batch = model.forward(x_batch)
-            loss = criterion.forward(out_batch, y_batch)
-            optimizer.zero_grad()
-            loss.backward()
+            loss_grad = criterion.backward(out_batch, y_batch)
+            model.backward(loss_grad)
             optimizer.step()
 
         if (epoch + 1) % verbose == 0:
@@ -207,29 +202,19 @@ def main(args):
         print("Invalid dataset.")
         import sys
         sys.exit()
-        
-    x = torch.FloatTensor(x)
-    y = torch.LongTensor(y)
-    if args.gpu and torch.cuda.is_available():
-        print("---Using CUDA---")
-        x = x.cuda()
-        y = y.cuda()
-    else:
-        if args.gpu and not torch.cuda.is_available():
-            print("Warning: CUDA not available.")
-        print("---Using CPU---")
+    y = onehot_encode(y, 2)
     x_train, x_test, y_train, y_test = train_test_split(x,
                                                         y,
                                                         test_size=0.3,
                                                         random_state=SEED)
 
-    mlp = MLP(x.shape[-1], units, len(torch.unique(y)))
-    if args.gpu and torch.cuda.is_available():
-        mlp.cuda()
-    print(mlp)
+    mlp = MLP(x.shape[1], units, 2)
+    print("MLP Structure:")
+    for layer in mlp.layers:
+        print(layer.__class__.__name__, end=" -> ")
+    print("out\n")
 
-    criterion = torch.nn.CrossEntropyLoss(
-    )  # !!! torch does not accept one-hot labels !!!
+    celoss = CrossEntropy()
 
     if args.batch_size == -1:
         batch_size = len(x_train)  # BGD
@@ -243,18 +228,17 @@ def main(args):
           y_train,
           x_eval=x_test,
           y_eval=y_test,
-          criterion=criterion,
+          criterion=celoss,
           batch_size=batch_size,
           max_epochs=args.max_epochs,
           learning_rate=args.learning_rate,
           verbose=args.eval_freq,
           save_fig=args.save_fig,
           visual_model=args.visual_model,
-          quiet=args.quiet,
-          gpu=args.gpu)
+          quiet=args.quiet)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -304,7 +288,6 @@ if __name__ == '__main__':
                         "-q",
                         action="store_true",
                         help="No stdout when training.")
-    parser.add_argument("--gpu", "-g", action="store_true", help="Use GPU.")
 
     args = parser.parse_args()
 
