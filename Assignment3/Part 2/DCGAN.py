@@ -20,7 +20,6 @@ BATCH_SIZE_DEFAULT = 64
 LEARNING_RATE_DEFAULT = 0.0002
 MAX_EPOCHS_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 10
-DATA_DIR_DEFAULT = "./data"
 
 
 class Generator(nn.Module):
@@ -184,6 +183,7 @@ def train(
     max_epochs=MAX_EPOCHS_DEFAULT,
     verbose=EVAL_FREQ_DEFAULT,
     save_interval=-1,
+    save_image_path="./gen_images/",
     visual_model=False,
     quiet=False,
 ):
@@ -257,7 +257,7 @@ def train(
             if (epoch + 1) % save_interval == 0:
                 save_image(
                     fake_img_batch[:25],
-                    "gen_images/{}.png".format(epoch + 1),
+                    os.path.join(save_image_path, f"{epoch + 1}.png"),
                     nrow=5,
                     normalize=True,
                 )
@@ -284,12 +284,13 @@ def train(
 
 def main(args):
     # Create output image directory
-    os.makedirs("gen_images", exist_ok=True)
+    os.makedirs(args.save_image_path, exist_ok=True)
+    os.makedirs("model", exist_ok=True)
 
     # load data
     image_size = 64
     dataset = datasets.MNIST(
-        "./data/mnist",
+        args.data_dir,
         train=True,
         download=True,
         transform=transforms.Compose(
@@ -336,11 +337,12 @@ def main(args):
         max_epochs=args.max_epochs,
         verbose=args.eval_freq,
         save_interval=args.save_interval,
+        save_image_path=args.save_image_path,
         visual_model=args.visual_model,
         quiet=args.quiet,
     )
 
-    torch.save(generator.state_dict(), "./model/mnist_generator.pt")
+    torch.save(generator.state_dict(), os.path.join("./model/", f"{args.model_save_name}.pt"))
 
 
 if __name__ == "__main__":
@@ -349,8 +351,20 @@ if __name__ == "__main__":
         "--data_dir",
         "-d",
         type=str,
-        default=DATA_DIR_DEFAULT,
-        help="Directory for storing data",
+        default="./data/mnist/",
+        help="Directory for storing data.",
+    )
+    parser.add_argument(
+        "--save_image_path",
+        type=str,
+        default="./gen_images/",
+        help="Directory for storing generated images.",
+    )
+    parser.add_argument(
+        "--model_save_name",
+        type=str,
+        default="generator",
+        help="Model name.",
     )
     parser.add_argument(
         "--learning_rate",
