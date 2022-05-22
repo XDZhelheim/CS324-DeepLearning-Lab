@@ -131,4 +131,5 @@ dmypy.json
 temp*
 Assignment1/Part2_3/images/*.png
 data/
-gen_images/
+gen_images*
+nohup.out

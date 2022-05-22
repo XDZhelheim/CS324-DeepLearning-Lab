@@ -14,7 +14,7 @@ import numpy as np
 # Ref: https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
 # Ref: https://www.tensorflow.org/tutorials/generative/dcgan?hl=zh-cn
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda:2" if torch.cuda.is_available() else "cpu"
 NOISE_DIM_DEFAULT = 100
 BATCH_SIZE_DEFAULT = 64
 LEARNING_RATE_DEFAULT = 0.0002
@@ -181,7 +181,6 @@ def train(
     optimizer_G,
     optimizer_D,
     noise_dim=NOISE_DIM_DEFAULT,
-    batch_size=BATCH_SIZE_DEFAULT,
     max_epochs=MAX_EPOCHS_DEFAULT,
     verbose=EVAL_FREQ_DEFAULT,
     save_interval=-1,
@@ -197,6 +196,8 @@ def train(
         G_batch_loss_list = []
         D_batch_loss_list = []
         for img_batch, _ in dataloader:
+            batch_size = len(img_batch)
+
             ones = torch.ones(batch_size).to(DEVICE)
             zeros = torch.zeros(batch_size).to(DEVICE)
             img_batch = img_batch.to(DEVICE)
@@ -239,8 +240,9 @@ def train(
                 G_loss = sum(G_batch_loss_list) / len(G_batch_loss_list)
                 D_loss = sum(D_batch_loss_list) / len(D_batch_loss_list)
 
-                G_loss_list.append(G_loss)
-                D_loss_list.append(D_loss)
+                if visual_model:
+                    G_loss_list.append(G_loss)
+                    D_loss_list.append(D_loss)
 
             if not quiet:
                 print(
@@ -286,7 +288,6 @@ def main(args):
 
     # load data
     image_size = 64
-    indices = np.arange(args.batch_size * 100)
     dataset = datasets.MNIST(
         "./data/mnist",
         train=True,
@@ -300,11 +301,14 @@ def main(args):
             ]
         ),
     )
+    
+    # indices = np.arange(51200) # specify a subset
+    indices = np.arange(len(dataset)) # use full dataset
     subset = torch.utils.data.Subset(dataset, indices)
     dataloader = torch.utils.data.DataLoader(
         subset, batch_size=args.batch_size, shuffle=True,
     )
-    
+
     # import torchvision.utils as vutils
     # real_batch = next(iter(dataloader))
     # plt.figure(figsize=(8,8))
@@ -315,9 +319,9 @@ def main(args):
 
     # Initialize models and optimizers
     generator = Generator(
-        noise_dim=args.latent_dim, hidden_channels_base=64, output_channels=1
+        noise_dim=args.latent_dim, hidden_channels_base=128, output_channels=1
     ).to(DEVICE)
-    discriminator = Discriminator(input_channels=1, hidden_channels_base=64).to(DEVICE)
+    discriminator = Discriminator(input_channels=1, hidden_channels_base=128).to(DEVICE)
     optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.learning_rate)
     optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.learning_rate)
 
@@ -329,7 +333,6 @@ def main(args):
         optimizer_G,
         optimizer_D,
         noise_dim=args.latent_dim,
-        batch_size=args.batch_size,
         max_epochs=args.max_epochs,
         verbose=args.eval_freq,
         save_interval=args.save_interval,
@@ -337,7 +340,7 @@ def main(args):
         quiet=args.quiet,
     )
 
-    # torch.save(generator.state_dict(), "mnist_generator.pt")
+    torch.save(generator.state_dict(), "./model/mnist_generator.pt")
 
 
 if __name__ == "__main__":
@@ -392,7 +395,7 @@ if __name__ == "__main__":
         "--save_interval",
         "-s",
         type=int,
-        default=500,
+        default=-1,
         help="save every SAVE_INTERVAL iterations",
     )
     args = parser.parse_args()
