@@ -1,2 +1,2 @@
 # CS324-DeepLearning-Lab
-CS324 DeepLearning Lab Codes
+CS324 DeepLearning Assignment Code
